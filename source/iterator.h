@@ -17,7 +17,6 @@ struct forward_iterator_tag       :public input_iterator_tag {};
 struct bidirectional_iterator_tag :public forward_iterator_tag {};
 struct random_access_iterator_tag :public bidirectional_iterator_tag {};
 
-
 // template struct: iterator
 template <class Category, class T, class Distance = ptrdiff_t,
   class Pointer = T*, class Reference = T&>
@@ -31,33 +30,16 @@ struct iterator
 };
 
 
-// w_iterator_category
-// an iterator with category or not
-template <class T>
-struct w_iterator_category
-{
-private:
-  struct dual { char a; char b; };
-  // w/ category: return char, w/o category: return dual
-  template <class U> static char diff(typename U::iterator_category* = 0);
-  template <class U> static dual diff(...);
+// iterator_convert_impl
+// bool: an iterator can convert to I/OIter implicitly or not
 
-public:
-  // w/ category: value = true, w/o category: value = false
-  static const bool value = sizeof(diff<T>(0)) == sizeof(char);
-};
-
-
-// iterator_traits_impl
-// if an iterator can convert into i/o iterator implicitly, get all its traits
-
-// w/o iterator category
+// cannot convert to I/OIter
 template <class Iterator, bool>
-struct iterator_traits_impl {};
+struct iterator_convert_impl {};
 
-// w/ iterator category
+// can convert to I/OIter
 template <class Iterator>
-struct iterator_traits_impl<Iterator, true>
+struct iterator_convert_impl<Iterator, true>
 {
   typedef typename Iterator::iterator_category iterator_category;
   typedef typename Iterator::value_type        value_type;
@@ -67,18 +49,33 @@ struct iterator_traits_impl<Iterator, true>
 };
 
 
-// iterator_traits_aux
-// if an iterator can convert into i/o iterator implicitly or not
+// with_category
+template <class T>
+struct with_category
+{
+private:
+  struct dual { char a; char b; };
+  // without category: return char, not: return dual
+  template <class U> static char diff(typename U::iterator_category* = 0);
+  template <class U> static dual diff(...);
 
-// w/o iterator category
+public:
+  // with category: value = true, not: value = false
+  static const bool value = sizeof(diff<T>(0)) == sizeof(char);
+};
+
+
+// iterator_has_category
+// bool: an iterator has category or not
+
+// has not category
 template <class Iterator, bool>
-struct iterator_traits_aux {};
+struct iterator_has_category {};
 
-// w/ iterator category
-// inherit from iterator_traits_impl
+// has category
 template <class Iterator>
-struct iterator_traits_aux<Iterator, true>
-  :public iterator_traits_impl<Itertor,
+struct iterator_has_category<Iterator, true>
+  :public iterator_convert_impl<Itertor,
   std::is_convertible<
   typename Iterator::iterator_category, input_iterator_tag>::value ||
   std::is_convertible<
@@ -86,11 +83,12 @@ struct iterator_traits_aux<Iterator, true>
 
 
 // iterator_traits
-// extract traits of iterator
-// inherit from iterator_traits_aux
+// extract traits of iterator, if 2 conditions matched:
+// 1. iterator has category
+// 2. iterator can convert to I/OIter implicitly
 template <class Iterator>
 struct iterator_traits
-  :public iterator_traits_aux<Iterator, w_iterator_category<Iterator>::value> {};
+  :public iterator_has_category<Iterator, with_category<Iterator>::value> {};
 
 // partial specialized for pointer
 // pointer is treated as a random access iterator
@@ -116,49 +114,7 @@ struct iterator_traits<const T*>
 };
 
 
-// w_iterator_category_of
-// can convert into a certain type of iterator implicitly or not
-
-// T-type iterator cannot convert into U-type
-template <class T, class U>
-struct w_iterator_category_of<T, U, false> :public m_false_type {};
-
-// T-type iterator can convert into U-type
-template <class T, class U, bool = w_iterator_category<iterator_traits<T>>::value>
-struct w_iterator_category_of
-  :public m_bool_constant<std::is_convertible<
-  typename iterator_traits<T>::iterator_category, U>::value> {};
-
-// is a certain type of iterator or not
-template <class Iterator>
-struct is_input_iterator
-  :public w_iterator_category_of<Iterator, input_iterator_tag> {};
-
-template <class Iterator>
-struct is_output_iterator
-  :public w_iterator_category_of<Iterator, output_iterator_tag> {};
-
-template <class Iterator>
-struct is_forward_iterator
-  :public w_iterator_category_of<Iterator, forward_iterator_tag> {};
-
-template <class Iterator>
-struct is_bidirectional_iterator
-  :public w_iterator_category_of<Iterator, bidirectional_iterator_tag> {};
-
-template <class Iterator>
-struct is_random_access_iterator
-  :public w_iterator_category_of<Iterator, random_access_iterator_tag> {};
-
-// is an iterator or not
-// all iterators are derived from i/o iterator
-template <class Iterator>
-struct is_iterator
-  :public m_bool_constant<is_input_iterator<Iterator>::value ||
-  is_output_iterator<Iterator>::value> {};
-
-
-// extract traits of a specific iterator
+// extract specific traits of an iterator
 
 // iterator_category
 template <class Iterator>
@@ -184,6 +140,48 @@ iterator_category(const Iterator&)
 {
   return static_cast<typename iterator_traits<Iterator>::value_type*>(0);
 }
+
+
+// with_category_of
+// can convert to a certain type of iterator implicitly or not
+
+// T-type iterator cannot convert to U-type
+template <class T, class U>
+struct with_category_of<T, U, false> :public m_false_type {};
+
+// T-type iterator can convert to U-type
+template <class T, class U, bool = with_category<iterator_traits<T>>::value>
+struct with_category_of
+  :public m_bool_constant<std::is_convertible<
+  typename iterator_traits<T>::iterator_category, U>::value> {};
+
+
+// distinguish concrete iterator type
+template <class Iterator>
+struct is_input_iterator
+  :public with_category_of<Iterator, input_iterator_tag> {};
+
+template <class Iterator>
+struct is_output_iterator
+  :public with_category_of<Iterator, output_iterator_tag> {};
+
+template <class Iterator>
+struct is_forward_iterator
+  :public with_category_of<Iterator, forward_iterator_tag> {};
+
+template <class Iterator>
+struct is_bidirectional_iterator
+  :public with_category_of<Iterator, bidirectional_iterator_tag> {};
+
+template <class Iterator>
+struct is_random_access_iterator
+  :public with_category_of<Iterator, random_access_iterator_tag> {};
+
+// all iterators are derived from I/OIter
+template <class Iterator>
+struct is_iterator
+  :public m_bool_constant<is_input_iterator<Iterator>::value ||
+  is_output_iterator<Iterator>::value> {};
 
 
 // calculate distance
@@ -222,16 +220,16 @@ void advance_aux(IIter& i, Distance n, input_iterator_tag)
 {
   while (n--) ++i;
 }
-
 // bidirectional_iterator_tag
+
 template <class BIter, class Distance>
 void advance_aux(BIter& i, Distance n, bidirectional_iterator_tag)
 {
   if (n >= 0) { while (n--) ++i; }
   else { while (n++) --i; }
 }
-
 // random_access_iterator_tag
+
 template <class RIter, class Distance>
 void advance_aux(RIter& i, Distance n, random_access_iterator_tag)
 {
