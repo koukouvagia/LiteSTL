@@ -4,7 +4,7 @@ LiteSTL
 ## Introduction
 
 `LiteSTL` is a quite simplified version of `STL`, which is based on `C++ 11`.
-It is only a small project for parctice.
+It is only a small project for practice.
 
 ## Reference
 
