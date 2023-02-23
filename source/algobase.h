@@ -270,6 +270,129 @@ void fill_aux(RIter first, RIter last, const T& val,
   fill_n(first, last - first, val);
 }
 
+/********************************************************************************/
+// max
+/********************************************************************************/
+// ver1: <
+template <class T>
+const T& max(const T& lhs, const T& rhs)
+{
+  return lhs < rhs ? rhs : lhs;
+}
+
+// ver2: comp
+template <class T, class Compare>
+const T& max(const T& lhs, const T& rhs, Compare comp)
+{
+  return comp(lhs, rhs) ? rhs : lhs;
+}
+
+/********************************************************************************/
+// min
+/********************************************************************************/
+// ver1: <
+template <class T>
+const T& max(const T& lhs, const T& rhs)
+{
+  return rhs < lhs ? rhs : lhs;
+}
+
+// ver2: comp
+template <class T, class Compare>
+const T& max(const T& lhs, const T& rhs, Compare comp)
+{
+  return comp(rhs, lhs) ? rhs : lhs;
+}
+
+/********************************************************************************/
+// equal
+/********************************************************************************/
+// ver1: ==
+template <class IIter1, class IIter2>
+bool equal(IIter1 first1, IIter1 last1, IIter2 first2)
+{
+  for (; first1 != last1; ++first1, ++first2)
+  {
+    if (*first1 != *first2) return false;
+  }
+  return true;
+}
+
+// ver2: comp
+template <class IIter1, class IIter2, class Compare>
+bool equal(IIter1 first1, IIter1 last1, IIter2 first2, Compare comp)
+{
+  for (; first1 != last1; ++first1, ++first2)
+  {
+    if (!comp(*first1, *first2)) return false;
+  }
+  return true;
+}
+
+/*****************************************************************************************/
+// mismatch
+/*****************************************************************************************/
+// ver1: ==
+template <class IIter1, class IIter2>
+mystl::pair<IIter1, IIter2>
+mismatch(IIter1 first1, IIter1 last1, IIter2 first2)
+{
+  while (first1 != last1 && *first1 == *first2)
+  {
+    ++first1; ++first2;
+  }
+  return mystl::pair<IIter1, IIter2>(first1, first2);
+}
+
+// ver2: comp
+template <class IIter1, class IIter2, class Compare>
+mystl::pair<IIter1, IIter2>
+mismatch(IIter1 first1, IIter1 last1, IIter2 first2, Compare comp)
+{
+  while (first1 != last1 && comp(*first1, *first2))
+  {
+    ++first1; ++first2;
+  }
+  return mystl::pair<IIter1, IIter2>(first1, first2);
+}
+
+/*****************************************************************************************/
+// lexicographical_compare
+/*****************************************************************************************/
+// ver1: <
+template <class IIter1, class IIter2>
+bool lexicographical_compare(IIter1 first1, IIter1 last1, IIter2 first2, IIter2 last2)
+{
+  for (; first1 != last1 && first2 != last2; ++first1, first2)
+  {
+    if (*first1 < *first2) return true;
+    if (*first2 < *first1) return false;
+  }
+  return first1 == last1 && first2 != last2;
+}
+
+// ver2: comp
+template <class IIter1, class IIter2, class Compare>
+bool lexicographical_compare(IIter1 first1, IIter1 last1, IIter2 first2, IIter2 last2,
+  Compare comp)
+{
+  for (; first1 != last1 && first2 != last2; ++first1, first2)
+  {
+    if (comp(*first1, *first2)) return true;
+    if (comp(*first2, *first1)) return false;
+  }
+  return first1 == last1 && first2 != last2;
+}
+
+/*****************************************************************************************/
+// iter_swap
+/*****************************************************************************************/
+template <class FIter1, class FIter2>
+void iter_swap(FIter1 lhs, FIter2 rhs)
+{
+  mystl::swap(*lhs, *rhs);
+}
+
 } // namespace mystl
 
 #endif // !_LITESTL_ALGOBASE_H_
